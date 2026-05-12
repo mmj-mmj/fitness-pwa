@@ -1,6 +1,7 @@
 export const workoutRecordShape = {
   id: "string",
   date: "YYYY-MM-DD",
+  bodyPart: "string",
   exercises: [
     {
       id: "string",

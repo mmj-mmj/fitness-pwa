@@ -21,15 +21,29 @@ export function HistoryPage({ workoutStore }) {
             {dayWorkouts.map((workout) => (
               <article className="panel" key={workout.id}>
                 <div className="panel-head">
-                  <p>{workout.exercises.length} 个动作 · 总量 {formatNumber(getWorkoutVolume(workout))} kg</p>
+                  <p>
+                    {workout.bodyPart ? `${workout.bodyPart} · ` : ""}
+                    {getExerciseGroups(workout).length} 个动作 · 总量 {formatNumber(getWorkoutVolume(workout))} kg
+                  </p>
                   <button type="button" onClick={() => workoutStore.deleteWorkout(workout.id)}>删除</button>
                 </div>
-                {workout.exercises.map((exercise) => (
-                  <div className="exercise-row" key={exercise.id}>
-                    <strong>{exercise.name}</strong>
-                    <span>{exercise.weightKg} kg × {exercise.reps} 次 × {exercise.sets} 组</span>
-                    {exercise.note ? <small>{exercise.note}</small> : null}
-                  </div>
+                {getExerciseGroups(workout).map((group) => (
+                  <section className="exercise-group" key={group.name}>
+                    <div className="exercise-group-head">
+                      <strong>{group.name}</strong>
+                      <span>{group.sets.length} 组</span>
+                    </div>
+                    <div className="set-list">
+                      {group.sets.map((set) => (
+                        <div className="set-row" key={set.id}>
+                          <span>第 {set.index} 组</span>
+                          <strong>{formatNumber(set.weightKg)} kg</strong>
+                          <em>{set.reps} 次</em>
+                        </div>
+                      ))}
+                    </div>
+                    {group.notes.length ? <small>{group.notes.join("；")}</small> : null}
+                  </section>
                 ))}
               </article>
             ))}
@@ -42,4 +56,30 @@ export function HistoryPage({ workoutStore }) {
 
 function formatNumber(value) {
   return new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 1 }).format(value);
+}
+
+function getExerciseGroups(workout) {
+  const groups = new Map();
+
+  workout.exercises.forEach((exercise) => {
+    if (!groups.has(exercise.name)) {
+      groups.set(exercise.name, { name: exercise.name, notes: [], sets: [] });
+    }
+
+    const group = groups.get(exercise.name);
+    if (exercise.note && !group.notes.includes(exercise.note)) {
+      group.notes.push(exercise.note);
+    }
+
+    for (let count = 0; count < exercise.sets; count += 1) {
+      group.sets.push({
+        id: `${exercise.id}-${count}`,
+        index: group.sets.length + 1,
+        weightKg: exercise.weightKg,
+        reps: exercise.reps,
+      });
+    }
+  });
+
+  return [...groups.values()];
 }

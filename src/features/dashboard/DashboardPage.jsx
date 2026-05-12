@@ -38,7 +38,10 @@ export function DashboardPage({ workoutStore, goToTab }) {
         </div>
         {latest ? (
           <div className="latest-list">
-            <p>{formatDisplayDate(latest.date)} · 总量 {formatNumber(getWorkoutVolume(latest))} kg</p>
+            <p>
+              {formatDisplayDate(latest.date)}
+              {latest.bodyPart ? ` · ${latest.bodyPart}` : ""} · 总量 {formatNumber(getWorkoutVolume(latest))} kg
+            </p>
             {latest.exercises.map((exercise) => (
               <div className="exercise-row" key={exercise.id}>
                 <strong>{exercise.name}</strong>

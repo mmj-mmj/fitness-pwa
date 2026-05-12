@@ -45,6 +45,7 @@ function normalizeWorkout(workout) {
   return {
     id: String(workout.id || crypto.randomUUID()),
     date: String(workout.date),
+    bodyPart: String(workout.bodyPart || "").trim(),
     createdAt: workout.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     exercises: exercises.map((exercise) => ({

@@ -13,6 +13,7 @@ const blankExercise = () => ({
 
 export function WorkoutEntryPage({ workoutStore }) {
   const [date, setDate] = useState(() => todayLocalDate());
+  const [bodyPart, setBodyPart] = useState("");
   const [exercises, setExercises] = useState([blankExercise()]);
   const [message, setMessage] = useState("");
 
@@ -39,15 +40,16 @@ export function WorkoutEntryPage({ workoutStore }) {
         sets: Number.parseInt(exercise.sets, 10),
         note: exercise.note.trim(),
       }))
-      .filter((exercise) => exercise.name && exercise.weightKg > 0 && exercise.reps > 0 && exercise.sets > 0);
+      .filter((exercise) => exercise.name && Number.isFinite(exercise.weightKg) && exercise.weightKg !== 0 && exercise.reps > 0 && exercise.sets > 0);
 
     if (!date || normalized.length === 0) {
       setMessage("请至少填写一个完整动作。");
       return;
     }
 
-    workoutStore.addWorkout({ date, exercises: normalized });
+    workoutStore.addWorkout({ date, bodyPart: bodyPart.trim(), exercises: normalized });
     setExercises([blankExercise()]);
+    setBodyPart("");
     setMessage("已保存这次训练。");
   }
 
@@ -58,6 +60,10 @@ export function WorkoutEntryPage({ workoutStore }) {
         <label>
           <span>训练日期</span>
           <input type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
+        </label>
+        <label>
+          <span>今天练的部位</span>
+          <input value={bodyPart} onChange={(event) => setBodyPart(event.target.value)} placeholder="胸 / 背 / 肩 / 腿" />
         </label>
 
         {exercises.map((exercise, index) => (
@@ -73,7 +79,7 @@ export function WorkoutEntryPage({ workoutStore }) {
             <div className="form-grid">
               <label>
                 <span>重量 kg</span>
-                <input inputMode="decimal" min="0" step="0.5" type="number" value={exercise.weightKg} onChange={(event) => updateExercise(exercise.id, "weightKg", event.target.value)} />
+                <input inputMode="decimal" step="0.5" type="number" value={exercise.weightKg} onChange={(event) => updateExercise(exercise.id, "weightKg", event.target.value)} />
               </label>
               <label>
                 <span>次数</span>
