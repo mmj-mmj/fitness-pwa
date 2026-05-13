@@ -21,6 +21,29 @@
 
 ## 下一步
 
+## 打包安卓 APK
+
+本项目已接入 Capacitor，并生成了 `android/` 原生项目。
+
+### 在 GitHub 生成 APK
+
+1. 打开 GitHub 仓库的 Actions。
+2. 选择 `Build Android APK`。
+3. 点击 `Run workflow`。
+4. 等待任务完成后，在任务页面底部下载 `fitness-pwa-debug-apk`。
+5. 解压后把 `app-debug.apk` 传到安卓手机安装。
+
+安卓手机安装前需要允许当前文件管理器或浏览器“安装未知来源应用”。
+
+### 在本机用 Android Studio 打包
+
+1. 安装 Android Studio。
+2. 运行 `npm run android:sync`。
+3. 运行 `npm run android:open`。
+4. 在 Android Studio 中选择 Build APK。
+
+当前生成的是 debug APK，适合自己安装测试；如果要正式分发，需要配置 release 签名。
+
 ## 部署到 GitHub Pages
 
 1. 在 GitHub 创建一个空仓库。
