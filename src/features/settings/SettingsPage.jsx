@@ -60,16 +60,22 @@ export function SettingsPage({ auth, workoutStore }) {
 function AuthPanel({ auth, syncState, onSyncNow }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [authMessage, setAuthMessage] = useState("");
 
   async function handleAuth(action) {
+    if (action === "sign-up" && !inviteCode.trim()) {
+      setAuthMessage("注册需要填写邀请码。");
+      return;
+    }
+
     setBusy(true);
     setAuthMessage("");
 
     try {
       if (action === "sign-up") {
-        await auth.signUp(email.trim(), password);
+        await auth.signUp(email.trim(), password, inviteCode);
         setAuthMessage("注册请求已提交。如果开启了邮箱验证，请先去邮箱确认。");
       } else {
         await auth.signIn(email.trim(), password);
@@ -117,6 +123,10 @@ function AuthPanel({ auth, syncState, onSyncNow }) {
             <span>密码</span>
             <input disabled placeholder="至少 6 位" type="password" />
           </label>
+          <label>
+            <span>邀请码</span>
+            <input disabled placeholder="注册时填写" />
+          </label>
           <div className="auth-actions">
             <button className="primary-button" type="button" disabled>登录</button>
             <button className="secondary-button" type="button" disabled>注册</button>
@@ -140,9 +150,13 @@ function AuthPanel({ auth, syncState, onSyncNow }) {
             <span>密码</span>
             <input autoComplete="current-password" minLength="6" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="至少 6 位" />
           </label>
+          <label>
+            <span>邀请码</span>
+            <input autoComplete="off" value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} placeholder="仅注册时需要" />
+          </label>
           <div className="auth-actions">
             <button className="primary-button" type="button" onClick={() => handleAuth("sign-in")} disabled={busy || !email || !password}>登录</button>
-            <button className="secondary-button" type="button" onClick={() => handleAuth("sign-up")} disabled={busy || !email || !password}>注册</button>
+            <button className="secondary-button" type="button" onClick={() => handleAuth("sign-up")} disabled={busy || !email || !password || !inviteCode}>注册</button>
           </div>
         </div>
       )}

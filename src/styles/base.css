@@ -647,8 +647,11 @@ label {
 .bottom-tabs button {
   display: grid;
   gap: 3px;
+  grid-template-rows: 24px 16px;
   place-items: center;
+  width: 100%;
   min-height: 56px;
+  min-width: 0;
   border: 0;
   border-radius: 8px;
   background: transparent;
@@ -659,14 +662,27 @@ label {
   -webkit-user-select: none;
   touch-action: none;
   transition:
-    transform 230ms cubic-bezier(0.2, 1.45, 0.35, 1),
+    transform 180ms ease,
     color 180ms ease,
     background-color 180ms ease,
     box-shadow 180ms ease;
 }
 
+.bottom-tabs button svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
+.bottom-tabs button span {
+  display: block;
+  min-width: 32px;
+  line-height: 16px;
+  text-align: center;
+}
+
 .bottom-tabs button:active {
-  transform: scale(0.92) translateY(1px);
+  transform: scale(0.96);
 }
 
 .bottom-tabs button.active {

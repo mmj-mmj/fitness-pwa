@@ -37,9 +37,17 @@ export function useAuth() {
     if (error) throw error;
   }
 
-  async function signUp(email, password) {
+  async function signUp(email, password, inviteCode) {
     if (!isCloudConfigured) throw new Error("云同步还没有配置 Supabase。");
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          invite_code: inviteCode.trim(),
+        },
+      },
+    });
     if (error) throw error;
   }
 
