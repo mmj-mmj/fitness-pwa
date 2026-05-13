@@ -36,6 +36,12 @@ button {
   cursor: pointer;
 }
 
+button:disabled,
+input:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
 input,
 textarea,
 select {
@@ -412,6 +418,58 @@ label {
   margin-top: 18px;
 }
 
+.auth-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.auth-form,
+.auth-account {
+  display: grid;
+  gap: 12px;
+}
+
+.auth-account strong {
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.auth-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.sync-badge {
+  flex: 0 0 auto;
+  border: 1px solid rgba(220, 227, 236, 0.96);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--muted);
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.sync-badge.synced {
+  border-color: rgba(18, 185, 129, 0.28);
+  background: rgba(220, 252, 231, 0.86);
+  color: #047857;
+}
+
+.sync-badge.syncing {
+  border-color: rgba(36, 107, 254, 0.24);
+  background: rgba(232, 240, 255, 0.86);
+  color: var(--accent);
+}
+
+.sync-badge.error {
+  border-color: rgba(239, 68, 68, 0.24);
+  background: rgba(254, 226, 226, 0.86);
+  color: #b91c1c;
+}
+
 .bottom-tabs {
   position: fixed;
   right: 12px;
@@ -465,7 +523,8 @@ label {
   }
 
   .metric-grid,
-  .form-grid {
+  .form-grid,
+  .auth-actions {
     grid-template-columns: 1fr;
   }
 

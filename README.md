@@ -44,6 +44,33 @@
 
 当前生成的是 debug APK，适合自己安装测试；如果要正式分发，需要配置 release 签名。
 
+## Supabase 登录同步
+
+项目已预留 Supabase 登录和云同步能力。没有配置 Supabase 时，App 会继续只使用本地数据。
+
+需要准备：
+
+1. 创建 Supabase 项目。
+2. 在 Supabase SQL Editor 运行 `supabase/schema.sql`。
+3. 在 Supabase Project Settings → API 复制 Project URL 和 anon public key。
+4. 本地开发时复制 `.env.example` 为 `.env.local`，填入：
+
+```txt
+VITE_SUPABASE_URL=你的 Project URL
+VITE_SUPABASE_ANON_KEY=你的 anon public key
+```
+
+5. GitHub Pages 部署时，在仓库 Settings → Secrets and variables → Actions → Variables 添加同名变量：
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+
+同步逻辑：
+
+- 未登录：继续保存到当前设备本地。
+- 登录后：合并本地和云端训练记录，并上传本地记录。
+- 新增、删除、导入、清空：登录状态下会同步到云端。
+- 退出登录：本机数据仍会保留。
+
 ## 部署到 GitHub Pages
 
 1. 在 GitHub 创建一个空仓库。
