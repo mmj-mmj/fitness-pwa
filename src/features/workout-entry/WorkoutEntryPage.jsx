@@ -2,13 +2,18 @@ import { PageHeader } from "../../components/PageHeader.jsx";
 import { useState } from "react";
 import { todayLocalDate } from "../../lib/date.js";
 
-const blankExercise = () => ({
+const blankSet = () => ({
   id: crypto.randomUUID(),
-  name: "",
   weightKg: "",
   reps: "",
   sets: "",
+});
+
+const blankExercise = () => ({
+  id: crypto.randomUUID(),
+  name: "",
   note: "",
+  setRows: [blankSet()],
 });
 
 export function WorkoutEntryPage({ workoutStore }) {
@@ -19,6 +24,40 @@ export function WorkoutEntryPage({ workoutStore }) {
 
   function updateExercise(id, field, value) {
     setExercises((current) => current.map((exercise) => (exercise.id === id ? { ...exercise, [field]: value } : exercise)));
+  }
+
+  function updateSetRow(exerciseId, setId, field, value) {
+    setExercises((current) =>
+      current.map((exercise) =>
+        exercise.id === exerciseId
+          ? {
+              ...exercise,
+              setRows: exercise.setRows.map((setRow) => (setRow.id === setId ? { ...setRow, [field]: value } : setRow)),
+            }
+          : exercise,
+      ),
+    );
+  }
+
+  function addSetRow(exerciseId) {
+    setExercises((current) =>
+      current.map((exercise) =>
+        exercise.id === exerciseId ? { ...exercise, setRows: [...exercise.setRows, blankSet()] } : exercise,
+      ),
+    );
+  }
+
+  function removeSetRow(exerciseId, setId) {
+    setExercises((current) =>
+      current.map((exercise) =>
+        exercise.id === exerciseId
+          ? {
+              ...exercise,
+              setRows: exercise.setRows.length === 1 ? exercise.setRows : exercise.setRows.filter((setRow) => setRow.id !== setId),
+            }
+          : exercise,
+      ),
+    );
   }
 
   function addExercise() {
@@ -32,14 +71,16 @@ export function WorkoutEntryPage({ workoutStore }) {
   function submitWorkout(event) {
     event.preventDefault();
     const normalized = exercises
-      .map((exercise) => ({
-        ...exercise,
-        name: exercise.name.trim(),
-        weightKg: Number(exercise.weightKg),
-        reps: Number.parseInt(exercise.reps, 10),
-        sets: Number.parseInt(exercise.sets, 10),
-        note: exercise.note.trim(),
-      }))
+      .flatMap((exercise) =>
+        exercise.setRows.map((setRow) => ({
+          id: crypto.randomUUID(),
+          name: exercise.name.trim(),
+          weightKg: Number(setRow.weightKg),
+          reps: Number.parseInt(setRow.reps, 10),
+          sets: Number.parseInt(setRow.sets, 10),
+          note: exercise.note.trim(),
+        })),
+      )
       .filter((exercise) => exercise.name && Number.isFinite(exercise.weightKg) && exercise.weightKg !== 0 && exercise.reps > 0 && exercise.sets > 0);
 
     if (!date || normalized.length === 0) {
@@ -76,19 +117,35 @@ export function WorkoutEntryPage({ workoutStore }) {
               <span>动作名称</span>
               <input value={exercise.name} onChange={(event) => updateExercise(exercise.id, "name", event.target.value)} placeholder="深蹲" />
             </label>
-            <div className="form-grid">
-              <label>
-                <span>重量 kg</span>
-                <input inputMode="decimal" step="0.5" type="number" value={exercise.weightKg} onChange={(event) => updateExercise(exercise.id, "weightKg", event.target.value)} />
-              </label>
-              <label>
-                <span>次数</span>
-                <input inputMode="numeric" min="1" type="number" value={exercise.reps} onChange={(event) => updateExercise(exercise.id, "reps", event.target.value)} />
-              </label>
-              <label>
-                <span>组数</span>
-                <input inputMode="numeric" min="1" type="number" value={exercise.sets} onChange={(event) => updateExercise(exercise.id, "sets", event.target.value)} />
-              </label>
+            <div className="set-form">
+              <div className="set-form-head">
+                <span>重量记录</span>
+                <button type="button" onClick={() => addSetRow(exercise.id)}>添加一条</button>
+              </div>
+              <div className="set-form-list">
+                {exercise.setRows.map((setRow, setIndex) => (
+                  <section className="set-form-row" key={setRow.id}>
+                    <div className="set-form-row-head">
+                      <strong>记录 {setIndex + 1}</strong>
+                      <button type="button" onClick={() => removeSetRow(exercise.id, setRow.id)}>移除</button>
+                    </div>
+                    <div className="form-grid">
+                      <label>
+                        <span>重量 kg</span>
+                        <input inputMode="decimal" step="0.5" type="number" value={setRow.weightKg} onChange={(event) => updateSetRow(exercise.id, setRow.id, "weightKg", event.target.value)} />
+                      </label>
+                      <label>
+                        <span>次数</span>
+                        <input inputMode="numeric" min="1" type="number" value={setRow.reps} onChange={(event) => updateSetRow(exercise.id, setRow.id, "reps", event.target.value)} />
+                      </label>
+                      <label>
+                        <span>组数</span>
+                        <input inputMode="numeric" min="1" type="number" value={setRow.sets} onChange={(event) => updateSetRow(exercise.id, setRow.id, "sets", event.target.value)} />
+                      </label>
+                    </div>
+                  </section>
+                ))}
+              </div>
             </div>
             <label>
               <span>备注</span>

@@ -348,6 +348,56 @@ label {
   gap: 10px;
 }
 
+.set-form {
+  display: grid;
+  gap: 10px;
+}
+
+.set-form-head,
+.set-form-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.set-form-head span,
+.set-form-row-head strong {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.set-form-head button,
+.set-form-row-head button {
+  min-height: 32px;
+  border: 1px solid rgba(220, 227, 236, 0.96);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--accent);
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.set-form-list {
+  display: grid;
+  gap: 10px;
+}
+
+.set-form-row {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(220, 227, 236, 0.78);
+  border-radius: 8px;
+  background: rgba(248, 251, 255, 0.68);
+  padding: 12px;
+}
+
+.set-form-row-head button {
+  color: var(--muted);
+}
+
 .form-message {
   margin: 0;
   border-radius: 8px;
