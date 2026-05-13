@@ -1,5 +1,5 @@
 create table if not exists public.workouts (
-  id uuid primary key,
+  id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
   date text not null,
   body_part text not null default '',
