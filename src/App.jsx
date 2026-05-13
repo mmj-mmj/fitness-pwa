@@ -24,7 +24,9 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <ActivePage auth={auth} workoutStore={workoutStore} goToTab={setActiveTab} />
+      <div className="page-transition" key={activeTab}>
+        <ActivePage auth={auth} workoutStore={workoutStore} goToTab={setActiveTab} />
+      </div>
       <nav className="bottom-tabs" aria-label="主导航">
         {tabs.map(({ id, label, icon: Icon }) => (
           <button
