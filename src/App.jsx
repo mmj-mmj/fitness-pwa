@@ -22,6 +22,15 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("home");
   const ActivePage = tabs.find((tab) => tab.id === activeTab).component;
 
+  function switchTab(id) {
+    setActiveTab((current) => (current === id ? current : id));
+  }
+
+  function handleTabTouchStart(event, id) {
+    event.preventDefault();
+    switchTab(id);
+  }
+
   return (
     <main className="app-shell">
       <div className="page-transition" key={activeTab}>
@@ -33,7 +42,8 @@ export default function App() {
             aria-current={id === activeTab ? "page" : undefined}
             className={id === activeTab ? "active" : ""}
             key={id}
-            onClick={() => setActiveTab(id)}
+            onClick={() => switchTab(id)}
+            onTouchStart={(event) => handleTabTouchStart(event, id)}
             type="button"
           >
             <Icon aria-hidden="true" size={20} />

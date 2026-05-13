@@ -30,6 +30,7 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100dvh;
+  overscroll-behavior-y: none;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -617,6 +618,7 @@ label {
 
 .bottom-tabs {
   position: fixed;
+  z-index: 20;
   right: 0;
   bottom: 0;
   left: 0;
@@ -638,6 +640,8 @@ label {
     0 -8px 24px rgba(20, 32, 51, 0.07);
   backdrop-filter: blur(12px) saturate(135%);
   -webkit-backdrop-filter: blur(12px) saturate(135%);
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .bottom-tabs button {
@@ -651,6 +655,9 @@ label {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
   transition:
     transform 230ms cubic-bezier(0.2, 1.45, 0.35, 1),
     color 180ms ease,
