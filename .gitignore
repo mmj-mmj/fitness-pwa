@@ -5,3 +5,4 @@ dist
 .env*.local
 import-workouts-*.json
 android-apk/
+android-apk-*/
