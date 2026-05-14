@@ -5,8 +5,8 @@ import { todayLocalDate } from "../../lib/date.js";
 const blankSet = () => ({
   id: crypto.randomUUID(),
   weightKg: "",
+  weightMode: "normal",
   reps: "",
-  sets: "",
 });
 
 const blankExercise = () => ({
@@ -76,12 +76,13 @@ export function WorkoutEntryPage({ workoutStore }) {
           id: crypto.randomUUID(),
           name: exercise.name.trim(),
           weightKg: Number(setRow.weightKg),
+          weightMode: setRow.weightMode === "assisted" ? "assisted" : "normal",
           reps: Number.parseInt(setRow.reps, 10),
-          sets: Number.parseInt(setRow.sets, 10),
+          sets: 1,
           note: exercise.note.trim(),
         })),
       )
-      .filter((exercise) => exercise.name && Number.isFinite(exercise.weightKg) && exercise.weightKg !== 0 && exercise.reps > 0 && exercise.sets > 0);
+      .filter((exercise) => exercise.name && Number.isFinite(exercise.weightKg) && exercise.weightKg !== 0 && exercise.reps > 0);
 
     if (!date || normalized.length === 0) {
       setMessage("请至少填写一个完整动作。");
@@ -120,29 +121,34 @@ export function WorkoutEntryPage({ workoutStore }) {
             <div className="set-form">
               <div className="set-form-head">
                 <span>重量记录</span>
-                <button type="button" onClick={() => addSetRow(exercise.id)}>添加一条</button>
+                <button type="button" onClick={() => addSetRow(exercise.id)}>添加组数</button>
               </div>
               <div className="set-form-list">
                 {exercise.setRows.map((setRow, setIndex) => (
                   <section className="set-form-row" key={setRow.id}>
                     <div className="set-form-row-head">
-                      <strong>记录 {setIndex + 1}</strong>
+                      <strong>第 {setIndex + 1} 组</strong>
                       <button type="button" onClick={() => removeSetRow(exercise.id, setRow.id)}>移除</button>
                     </div>
-                    <div className="form-grid">
+                    <div className="form-grid set-metrics-grid">
                       <label>
-                        <span>重量 kg</span>
+                        <span>{setRow.weightMode === "assisted" ? "辅助重量 kg" : "重量 kg"}</span>
                         <input inputMode="decimal" step="0.5" type="number" value={setRow.weightKg} onChange={(event) => updateSetRow(exercise.id, setRow.id, "weightKg", event.target.value)} />
                       </label>
                       <label>
                         <span>次数</span>
                         <input inputMode="numeric" min="1" type="number" value={setRow.reps} onChange={(event) => updateSetRow(exercise.id, setRow.id, "reps", event.target.value)} />
                       </label>
-                      <label>
-                        <span>组数</span>
-                        <input inputMode="numeric" min="1" type="number" value={setRow.sets} onChange={(event) => updateSetRow(exercise.id, setRow.id, "sets", event.target.value)} />
-                      </label>
                     </div>
+                    <button
+                      className={`weight-mode-toggle ${setRow.weightMode === "assisted" ? "active" : ""}`}
+                      type="button"
+                      onClick={() =>
+                        updateSetRow(exercise.id, setRow.id, "weightMode", setRow.weightMode === "assisted" ? "normal" : "assisted")
+                      }
+                    >
+                      {setRow.weightMode === "assisted" ? "辅助重量" : "正常重量"}
+                    </button>
                   </section>
                 ))}
               </div>

@@ -1,11 +1,9 @@
 import { PageHeader } from "../../components/PageHeader.jsx";
 
-const trackedExercises = ["平板卧推", "高位下拉", "哑铃飞鸟", "哑铃推肩"];
-
 export function StatsPage({ workoutStore }) {
   const { workouts, summary } = workoutStore;
   const exerciseStats = [...summary.exerciseCounts.entries()].sort((a, b) => b[1] - a[1]);
-  const maxWeights = getTrackedMaxWeights(workouts);
+  const maxWeights = getAllMaxWeights(workouts);
 
   return (
     <section className="page">
@@ -19,11 +17,12 @@ export function StatsPage({ workoutStore }) {
 
       <section className="panel stats-panel">
         <h2>最大重量</h2>
+        {maxWeights.length === 0 ? <p className="empty-text">暂无统计。</p> : null}
         <div className="max-weight-list">
-          {trackedExercises.map((name) => (
+          {maxWeights.map(([name, weight]) => (
             <div className="max-weight-row" key={name}>
               <span>{name}</span>
-              <strong>{maxWeights.get(name) ? `${formatNumber(maxWeights.get(name))} kg` : "暂无"}</strong>
+              <strong>{`${formatNumber(weight)} kg`}</strong>
             </div>
           ))}
         </div>
@@ -43,18 +42,19 @@ export function StatsPage({ workoutStore }) {
   );
 }
 
-function getTrackedMaxWeights(workouts) {
-  const result = new Map(trackedExercises.map((name) => [name, 0]));
+function getAllMaxWeights(workouts) {
+  const result = new Map();
 
   workouts.forEach((workout) => {
     workout.exercises.forEach((exercise) => {
-      const matchedName = trackedExercises.find((name) => exercise.name.includes(name));
-      if (!matchedName) return;
-      result.set(matchedName, Math.max(result.get(matchedName), Number(exercise.weightKg) || 0));
+      const name = exercise.name?.trim();
+      const weight = Number(exercise.weightKg) || 0;
+      if (!name || weight <= 0 || exercise.weightMode === "assisted") return;
+      result.set(name, Math.max(result.get(name) || 0, weight));
     });
   });
 
-  return result;
+  return [...result.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "zh-CN"));
 }
 
 function formatNumber(value) {

@@ -1,13 +1,28 @@
 import { useEffect, useMemo, useState } from "react";
-import { clearCloudWorkouts, deleteCloudWorkout, fetchCloudWorkouts, mergeWorkouts, upsertCloudWorkouts } from "./cloudWorkouts.js";
+import { fetchCloudWorkouts, mergeWorkouts, upsertCloudWorkouts } from "./cloudWorkouts.js";
 import { todayLocalDate } from "./date.js";
 import { loadWorkouts, saveWorkouts } from "./storage.js";
 
 export function useWorkouts(auth) {
-  const [workouts, setWorkouts] = useState(() => loadWorkouts());
+  const [storedWorkouts, setStoredWorkouts] = useState(() => loadWorkouts());
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const [syncState, setSyncState] = useState({ status: "local", message: "仅本地保存" });
   const userId = auth?.user?.id;
-  const canSync = Boolean(auth?.isCloudConfigured && userId);
+  const canSync = Boolean(auth?.isCloudConfigured && userId && isOnline);
+
+  useEffect(() => {
+    function updateOnlineState() {
+      setIsOnline(navigator.onLine);
+    }
+
+    window.addEventListener("online", updateOnlineState);
+    window.addEventListener("offline", updateOnlineState);
+
+    return () => {
+      window.removeEventListener("online", updateOnlineState);
+      window.removeEventListener("offline", updateOnlineState);
+    };
+  }, []);
 
   useEffect(() => {
     if (!auth?.isCloudConfigured) {
@@ -20,6 +35,11 @@ export function useWorkouts(auth) {
       return undefined;
     }
 
+    if (!isOnline) {
+      setSyncState({ status: "offline", message: "已离线，数据将稍后同步" });
+      return undefined;
+    }
+
     let alive = true;
     setSyncState({ status: "syncing", message: "正在同步云端数据" });
 
@@ -28,8 +48,9 @@ export function useWorkouts(auth) {
         const cloudWorkouts = await fetchCloudWorkouts(userId);
         const merged = mergeWorkouts(loadWorkouts(), cloudWorkouts);
         if (!alive) return;
-        commitLocal(merged);
-        await upsertCloudWorkouts(userId, merged);
+        const synced = markSynced(merged);
+        commitLocal(synced);
+        await upsertCloudWorkouts(userId, synced);
         if (!alive) return;
         setSyncState({ status: "synced", message: "云同步已开启" });
       } catch (error) {
@@ -43,7 +64,7 @@ export function useWorkouts(auth) {
     return () => {
       alive = false;
     };
-  }, [auth?.isCloudConfigured, userId]);
+  }, [auth?.isCloudConfigured, userId, isOnline]);
 
   function addWorkout(workout) {
     const now = new Date().toISOString();
@@ -53,60 +74,89 @@ export function useWorkouts(auth) {
         id: crypto.randomUUID(),
         createdAt: now,
         updatedAt: now,
+        deletedAt: null,
+        syncStatus: "pending",
+        lastSyncedAt: null,
       },
-      ...workouts,
+      ...storedWorkouts,
     ];
-    commit(nextWorkouts, "upsert");
+    commit(nextWorkouts);
   }
 
   function deleteWorkout(id) {
-    const nextWorkouts = workouts.filter((workout) => workout.id !== id);
-    commitLocal(nextWorkouts);
-    runCloudTask(() => deleteCloudWorkout(userId, id));
+    const now = new Date().toISOString();
+    const nextWorkouts = storedWorkouts.map((workout) =>
+      workout.id === id
+        ? { ...workout, deletedAt: now, updatedAt: now, syncStatus: "pending" }
+        : workout,
+    );
+    commit(nextWorkouts);
   }
 
   function replaceWorkouts(nextWorkouts) {
-    commit(nextWorkouts, "upsert");
+    const now = new Date().toISOString();
+    commit(nextWorkouts.map((workout) => ({ ...workout, updatedAt: workout.updatedAt || now, syncStatus: "pending" })));
   }
 
   function clearWorkouts() {
-    commitLocal([]);
-    runCloudTask(() => clearCloudWorkouts(userId));
+    const now = new Date().toISOString();
+    commit(
+      storedWorkouts.map((workout) => ({
+        ...workout,
+        deletedAt: workout.deletedAt || now,
+        updatedAt: now,
+        syncStatus: "pending",
+      })),
+    );
   }
 
   function commitLocal(nextWorkouts) {
-    setWorkouts(nextWorkouts);
+    setStoredWorkouts(nextWorkouts);
     saveWorkouts(nextWorkouts);
   }
 
-  function commit(nextWorkouts, cloudAction) {
+  function commit(nextWorkouts) {
     commitLocal(nextWorkouts);
-    if (cloudAction === "upsert") {
-      runCloudTask(() => upsertCloudWorkouts(userId, nextWorkouts));
-    }
+    runCloudTask(nextWorkouts);
   }
 
-  async function runCloudTask(task) {
-    if (!canSync) return;
+  async function runCloudTask(nextWorkouts = storedWorkouts) {
+    if (!auth?.isCloudConfigured || !userId) return;
+    if (!isOnline) {
+      setSyncState({ status: "offline", message: "已离线，数据将稍后同步" });
+      return;
+    }
 
     setSyncState({ status: "syncing", message: "正在同步" });
     try {
-      await task();
+      await upsertCloudWorkouts(userId, nextWorkouts.filter((workout) => workout.syncStatus !== "synced"));
+      commitLocal(markSynced(nextWorkouts));
       setSyncState({ status: "synced", message: "云同步已开启" });
     } catch (error) {
-      setSyncState({ status: "error", message: error.message || "云同步失败" });
+      setSyncState({ status: "error", message: error.message || "同步失败，点击重试" });
     }
   }
 
   async function syncNow() {
-    if (!canSync) return;
-    await runCloudTask(async () => {
+    if (!auth?.isCloudConfigured || !userId) return;
+    if (!isOnline) {
+      setSyncState({ status: "offline", message: "已离线，数据将稍后同步" });
+      return;
+    }
+
+    setSyncState({ status: "syncing", message: "正在同步" });
+    try {
       const cloudWorkouts = await fetchCloudWorkouts(userId);
       const merged = mergeWorkouts(loadWorkouts(), cloudWorkouts);
-      commitLocal(merged);
       await upsertCloudWorkouts(userId, merged);
-    });
+      commitLocal(markSynced(merged));
+      setSyncState({ status: "synced", message: "云同步已开启" });
+    } catch (error) {
+      setSyncState({ status: "error", message: error.message || "同步失败，点击重试" });
+    }
   }
+
+  const workouts = useMemo(() => storedWorkouts.filter((workout) => !workout.deletedAt), [storedWorkouts]);
 
   const summary = useMemo(() => {
     const sorted = sortByDateDesc(workouts);
@@ -139,6 +189,7 @@ export function useWorkouts(auth) {
     workouts,
     summary,
     syncState,
+    isOnline,
     addWorkout,
     deleteWorkout,
     replaceWorkouts,
@@ -155,5 +206,13 @@ export function sortByDateDesc(workouts) {
 }
 
 export function getWorkoutVolume(workout) {
-  return workout.exercises.reduce((sum, exercise) => sum + exercise.weightKg * exercise.reps * exercise.sets, 0);
+  return workout.exercises.reduce((sum, exercise) => {
+    if (exercise.weightMode === "assisted") return sum;
+    return sum + exercise.weightKg * exercise.reps * exercise.sets;
+  }, 0);
+}
+
+function markSynced(workouts) {
+  const now = new Date().toISOString();
+  return workouts.map((workout) => ({ ...workout, syncStatus: "synced", lastSyncedAt: now }));
 }

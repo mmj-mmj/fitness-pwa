@@ -32,13 +32,13 @@ export function useAuth() {
   }, []);
 
   async function signIn(email, password) {
-    if (!isCloudConfigured) throw new Error("云同步还没有配置 Supabase。");
+    if (!isCloudConfigured) throw new Error("当前安装包还没有写入 Supabase 配置，所以无法登录或注册。请配置 VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY 后重新打包。");
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   }
 
   async function signUp(email, password, inviteCode) {
-    if (!isCloudConfigured) throw new Error("云同步还没有配置 Supabase。");
+    if (!isCloudConfigured) throw new Error("当前安装包还没有写入 Supabase 配置，所以无法登录或注册。请配置 VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY 后重新打包。");
     const { error } = await supabase.auth.signUp({
       email,
       password,

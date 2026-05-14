@@ -37,7 +37,7 @@ export function HistoryPage({ workoutStore }) {
                       {group.sets.map((set) => (
                         <div className="set-row" key={set.id}>
                           <span>第 {set.index} 组</span>
-                          <strong>{formatNumber(set.weightKg)} kg</strong>
+                          <strong>{set.weightMode === "assisted" ? `辅助 ${formatNumber(set.weightKg)} kg` : `${formatNumber(set.weightKg)} kg`}</strong>
                           <em>{set.reps} 次</em>
                         </div>
                       ))}
@@ -76,6 +76,7 @@ function getExerciseGroups(workout) {
         id: `${exercise.id}-${count}`,
         index: group.sets.length + 1,
         weightKg: exercise.weightKg,
+        weightMode: exercise.weightMode === "assisted" ? "assisted" : "normal",
         reps: exercise.reps,
       });
     }

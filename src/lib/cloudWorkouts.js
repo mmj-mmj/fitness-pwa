@@ -7,6 +7,7 @@ function toCloudRow(userId, workout) {
     date: workout.date,
     body_part: workout.bodyPart || "",
     exercises: workout.exercises || [],
+    deleted_at: workout.deletedAt || null,
     created_at: workout.createdAt || new Date().toISOString(),
     updated_at: workout.updatedAt || new Date().toISOString(),
   };
@@ -18,6 +19,9 @@ function fromCloudRow(row) {
     date: row.date,
     bodyPart: row.body_part || "",
     exercises: Array.isArray(row.exercises) ? row.exercises : [],
+    deletedAt: row.deleted_at || null,
+    syncStatus: "synced",
+    lastSyncedAt: row.last_synced_at || row.updated_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -26,7 +30,7 @@ function fromCloudRow(row) {
 export async function fetchCloudWorkouts(userId) {
   const { data, error } = await supabase
     .from("workouts")
-    .select("id,date,body_part,exercises,created_at,updated_at")
+    .select("id,date,body_part,exercises,deleted_at,created_at,updated_at")
     .eq("user_id", userId)
     .order("date", { ascending: false })
     .order("updated_at", { ascending: false });
@@ -41,16 +45,6 @@ export async function upsertCloudWorkouts(userId, workouts) {
     .from("workouts")
     .upsert(workouts.map((workout) => toCloudRow(userId, workout)), { onConflict: "id" });
 
-  if (error) throw error;
-}
-
-export async function deleteCloudWorkout(userId, workoutId) {
-  const { error } = await supabase.from("workouts").delete().eq("user_id", userId).eq("id", workoutId);
-  if (error) throw error;
-}
-
-export async function clearCloudWorkouts(userId) {
-  const { error } = await supabase.from("workouts").delete().eq("user_id", userId);
   if (error) throw error;
 }
 

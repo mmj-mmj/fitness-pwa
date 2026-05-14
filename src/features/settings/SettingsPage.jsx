@@ -5,13 +5,23 @@ import { exportWorkouts, importWorkouts } from "../../lib/storage.js";
 export function SettingsPage({ auth, workoutStore }) {
   const fileInput = useRef(null);
   const [message, setMessage] = useState("");
+  const [showDangerActions, setShowDangerActions] = useState(false);
 
   function downloadJson() {
-    const blob = new Blob([exportWorkouts(workoutStore.workouts)], { type: "application/json" });
+    const content = exportWorkouts(workoutStore.workouts);
+    const filename = `训练日志-${new Date().toISOString().slice(0, 10)}.json`;
+
+    if (window.webkit?.messageHandlers?.fileExport) {
+      window.webkit.messageHandlers.fileExport.postMessage({ filename, content });
+      setMessage("已打开导出面板。");
+      return;
+    }
+
+    const blob = new Blob([content], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `训练日志-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
     setMessage("已导出 JSON 文件。");
@@ -45,13 +55,28 @@ export function SettingsPage({ auth, workoutStore }) {
       <div className="settings-actions">
         <button className="primary-button" type="button" onClick={downloadJson}>导出 JSON</button>
         <button className="secondary-button" type="button" onClick={() => fileInput.current?.click()}>导入 JSON</button>
-        <button className="danger-button" type="button" onClick={clearData}>清空数据</button>
       </div>
       <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={handleImport} />
       {message ? <p className="form-message">{message}</p> : null}
       <section className="panel">
         <h2>数据说明</h2>
         <p className="empty-text">未登录时数据只保存在当前设备本地。登录后会自动合并本地和云端记录；换手机登录同一账号即可同步。</p>
+      </section>
+      <section className="panel danger-zone">
+        <button
+          className="danger-zone-toggle"
+          type="button"
+          onClick={() => setShowDangerActions((value) => !value)}
+          aria-expanded={showDangerActions}
+        >
+          数据高级操作
+        </button>
+        {showDangerActions ? (
+          <div className="danger-zone-actions">
+            <p>清空会删除本机训练数据；登录状态下也会同步清空云端数据。</p>
+            <button className="danger-button" type="button" onClick={clearData}>清空全部训练数据</button>
+          </div>
+        ) : null}
       </section>
     </section>
   );
@@ -65,6 +90,11 @@ function AuthPanel({ auth, syncState, onSyncNow }) {
   const [authMessage, setAuthMessage] = useState("");
 
   async function handleAuth(action) {
+    if (!email.trim() || !password) {
+      setAuthMessage("请填写邮箱和密码。");
+      return;
+    }
+
     if (action === "sign-up" && !inviteCode.trim()) {
       setAuthMessage("注册需要填写邀请码。");
       return;
@@ -109,27 +139,27 @@ function AuthPanel({ auth, syncState, onSyncNow }) {
           <h2>账号同步</h2>
           <p>{syncState.message}</p>
         </div>
-        <span className={`sync-badge ${syncState.status}`}>{syncState.status === "synced" ? "已同步" : "本地"}</span>
+        <span className={`sync-badge ${syncState.status}`}>{formatSyncStatus(syncState.status)}</span>
       </div>
 
       {!auth.isCloudConfigured ? (
         <div className="auth-form">
-          <p className="empty-text">云同步入口已预留。配置 Supabase 后，下面的登录和注册就会启用。</p>
+          <p className="empty-text">当前安装包还没有写入 Supabase 配置，输入框可以正常操作；配置 VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY 后重新打包，登录和注册会连接云同步。</p>
           <label>
             <span>邮箱</span>
-            <input disabled placeholder="you@example.com" />
+            <input autoComplete="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" />
           </label>
           <label>
             <span>密码</span>
-            <input disabled placeholder="至少 6 位" type="password" />
+            <input autoComplete="current-password" minLength="6" type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="至少 6 位" />
           </label>
           <label>
             <span>邀请码</span>
-            <input disabled placeholder="注册时填写" />
+            <input autoComplete="off" value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} placeholder="仅注册时需要" />
           </label>
           <div className="auth-actions">
-            <button className="primary-button" type="button" disabled>登录</button>
-            <button className="secondary-button" type="button" disabled>注册</button>
+            <button className="primary-button" type="button" onClick={() => handleAuth("sign-in")} disabled={busy}>登录</button>
+            <button className="secondary-button" type="button" onClick={() => handleAuth("sign-up")} disabled={busy}>注册</button>
           </div>
         </div>
       ) : auth.user ? (
@@ -155,8 +185,8 @@ function AuthPanel({ auth, syncState, onSyncNow }) {
             <input autoComplete="off" value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} placeholder="仅注册时需要" />
           </label>
           <div className="auth-actions">
-            <button className="primary-button" type="button" onClick={() => handleAuth("sign-in")} disabled={busy || !email || !password}>登录</button>
-            <button className="secondary-button" type="button" onClick={() => handleAuth("sign-up")} disabled={busy || !email || !password || !inviteCode}>注册</button>
+            <button className="primary-button" type="button" onClick={() => handleAuth("sign-in")} disabled={busy}>登录</button>
+            <button className="secondary-button" type="button" onClick={() => handleAuth("sign-up")} disabled={busy}>注册</button>
           </div>
         </div>
       )}
@@ -164,4 +194,13 @@ function AuthPanel({ auth, syncState, onSyncNow }) {
       {authMessage ? <p className="form-message">{authMessage}</p> : null}
     </section>
   );
+}
+
+function formatSyncStatus(status) {
+  if (status === "synced") return "已同步";
+  if (status === "syncing") return "同步中";
+  if (status === "offline") return "离线";
+  if (status === "error") return "待重试";
+  if (status === "signed-out") return "未登录";
+  return "本地";
 }

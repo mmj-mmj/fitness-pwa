@@ -4,6 +4,7 @@ create table if not exists public.workouts (
   date text not null,
   body_part text not null default '',
   exercises jsonb not null default '[]'::jsonb,
+  deleted_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

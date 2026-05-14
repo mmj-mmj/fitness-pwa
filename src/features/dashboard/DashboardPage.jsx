@@ -1,14 +1,13 @@
 import { PageHeader } from "../../components/PageHeader.jsx";
 import { formatDisplayDate } from "../../lib/date.js";
-import { getWorkoutVolume } from "../../lib/useWorkouts.js";
 
 export function DashboardPage({ workoutStore, goToTab }) {
-  const { summary } = workoutStore;
-  const latest = summary.latestWorkout;
+  const { summary, workouts } = workoutStore;
+  const recentWorkoutDays = getRecentWorkoutDays(workouts);
 
   return (
     <section className="page">
-      <PageHeader title="首页" description="今日训练状态、最近一次训练和快捷入口。" />
+      <PageHeader title="首页" description="今日训练状态、最近健身日期和快捷入口。" />
 
       <div className="status-card">
         <span>{summary.trainedToday ? "今天已训练" : "今天还未训练"}</span>
@@ -33,30 +32,74 @@ export function DashboardPage({ workoutStore, goToTab }) {
 
       <section className="panel">
         <div className="panel-head">
-          <h2>最近一次</h2>
+          <h2>近一个月训练日期</h2>
           <button type="button" onClick={() => goToTab("history")}>查看历史</button>
         </div>
-        {latest ? (
-          <div className="latest-list">
-            <p>
-              {formatDisplayDate(latest.date)}
-              {latest.bodyPart ? ` · ${latest.bodyPart}` : ""} · 总量 {formatNumber(getWorkoutVolume(latest))} kg
-            </p>
-            {latest.exercises.map((exercise) => (
-              <div className="exercise-row" key={exercise.id}>
-                <strong>{exercise.name}</strong>
-                <span>{exercise.weightKg} kg × {exercise.reps} 次 × {exercise.sets} 组</span>
+        {recentWorkoutDays.length > 0 ? (
+          <div className="recent-days-list">
+            {recentWorkoutDays.map((day) => (
+              <div className="recent-day-row" key={day.date}>
+                <strong>{formatDisplayDate(day.date)}</strong>
+                <span>{day.focus}</span>
               </div>
             ))}
           </div>
         ) : (
-          <p className="empty-text">还没有训练记录。</p>
+          <p className="empty-text">近一个月还没有训练记录。</p>
         )}
       </section>
     </section>
   );
 }
 
-function formatNumber(value) {
-  return new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 1 }).format(value);
+function getRecentWorkoutDays(workouts) {
+  const today = startOfLocalDay(new Date());
+  const monthAgo = new Date(today);
+  monthAgo.setDate(today.getDate() - 29);
+
+  const grouped = new Map();
+  workouts.forEach((workout) => {
+    const workoutDate = startOfLocalDay(new Date(`${workout.date}T00:00:00`));
+    if (workoutDate < monthAgo || workoutDate > today) return;
+
+    if (!grouped.has(workout.date)) {
+      grouped.set(workout.date, { date: workout.date, focusSet: new Set(), exerciseSet: new Set() });
+    }
+
+    const group = grouped.get(workout.date);
+    const bodyPart = workout.bodyPart?.trim();
+    if (bodyPart) {
+      group.focusSet.add(bodyPart);
+    }
+    workout.exercises.forEach((exercise) => {
+      if (exercise.name?.trim()) {
+        group.exerciseSet.add(exercise.name.trim());
+      }
+    });
+  });
+
+  return [...grouped.values()]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map((group) => ({
+      date: group.date,
+      focus: summarizeFocus(group.focusSet, group.exerciseSet),
+    }));
+}
+
+function summarizeFocus(focusSet, exerciseSet) {
+  const focus = [...focusSet].slice(0, 3);
+  if (focus.length > 0) {
+    return focus.join(" / ");
+  }
+
+  const exercises = [...exerciseSet].slice(0, 3);
+  if (exercises.length > 0) {
+    return `动作：${exercises.join(" / ")}`;
+  }
+
+  return "未填写部位";
+}
+
+function startOfLocalDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }

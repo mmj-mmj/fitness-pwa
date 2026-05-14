@@ -7,6 +7,7 @@ export const workoutRecordShape = {
       id: "string",
       name: "string",
       weightKg: "number",
+      weightMode: "normal | assisted",
       reps: "number",
       sets: "number",
       note: "string",

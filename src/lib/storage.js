@@ -3,7 +3,7 @@ const STORAGE_KEY = "fitness-pwa.workouts";
 export function loadWorkouts() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.map(normalizeStoredWorkout).filter(Boolean) : [];
   } catch {
     return [];
   }
@@ -48,10 +48,43 @@ function normalizeWorkout(workout) {
     bodyPart: String(workout.bodyPart || "").trim(),
     createdAt: workout.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    deletedAt: workout.deletedAt || null,
+    syncStatus: "pending",
+    lastSyncedAt: workout.lastSyncedAt || null,
     exercises: exercises.map((exercise) => ({
       id: String(exercise.id || crypto.randomUUID()),
       name: String(exercise.name || "").trim(),
       weightKg: Number(exercise.weightKg || 0),
+      weightMode: exercise.weightMode === "assisted" ? "assisted" : "normal",
+      reps: Number.parseInt(exercise.reps || 0, 10),
+      sets: Number.parseInt(exercise.sets || 0, 10),
+      note: String(exercise.note || "").trim(),
+    })),
+  };
+}
+
+function normalizeStoredWorkout(workout) {
+  if (!workout || typeof workout !== "object") {
+    return null;
+  }
+
+  const now = new Date().toISOString();
+  const exercises = Array.isArray(workout.exercises) ? workout.exercises : [];
+
+  return {
+    id: String(workout.id || crypto.randomUUID()),
+    date: String(workout.date || ""),
+    bodyPart: String(workout.bodyPart || "").trim(),
+    createdAt: workout.createdAt || now,
+    updatedAt: workout.updatedAt || workout.createdAt || now,
+    deletedAt: workout.deletedAt || null,
+    syncStatus: workout.syncStatus || "synced",
+    lastSyncedAt: workout.lastSyncedAt || null,
+    exercises: exercises.map((exercise) => ({
+      id: String(exercise.id || crypto.randomUUID()),
+      name: String(exercise.name || "").trim(),
+      weightKg: Number(exercise.weightKg || 0),
+      weightMode: exercise.weightMode === "assisted" ? "assisted" : "normal",
       reps: Number.parseInt(exercise.reps || 0, 10),
       sets: Number.parseInt(exercise.sets || 0, 10),
       note: String(exercise.note || "").trim(),
