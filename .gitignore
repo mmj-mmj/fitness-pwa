@@ -1,5 +1,7 @@
 node_modules
 dist
+.gradle
+.android-sdk
 .DS_Store
 *.log
 .env*.local

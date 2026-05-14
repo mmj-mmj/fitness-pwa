@@ -17,6 +17,12 @@ export function SettingsPage({ auth, workoutStore }) {
       return;
     }
 
+    if (window.AndroidFileExport?.shareJson) {
+      window.AndroidFileExport.shareJson(filename, content);
+      setMessage("已打开导出面板。");
+      return;
+    }
+
     const blob = new Blob([content], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
